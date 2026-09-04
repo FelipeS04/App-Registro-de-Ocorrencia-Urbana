@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Mapa",
-    "slug": "Mapa",
+    "name": "Ocorrências Urbanas",
+    "slug": "Ocorrências Urbanas",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,7 +12,6 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    
     "ios": {
       "supportsTablet": true
     },
@@ -32,9 +31,13 @@
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
           "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
           "isAccessMediaLocationEnabled": true,
-          "granularPermissions": ["audio", "photo"]
+          "granularPermissions": [
+            "audio",
+            "photo"
+          ]
         }
-      ]
+      ],
+      "expo-status-bar"
     ]
   }
 }

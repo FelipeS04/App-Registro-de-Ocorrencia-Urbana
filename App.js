@@ -1,13 +1,30 @@
+import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import NovaOcorrenciaScreen from './screens/NovaOcorrenciaScreen';
+import TodasOcorrenciasScreen from './screens/TodasOcorrenciasScreen';
 
 const Stack = createNativeStackNavigator();
 
+
 export default function App() {
+
+  const [ocorrencias, setOcorrencias] = useState([]);
+
+
+  function adicionarOcorrencia(novaOcorrencia) {
+
+    setOcorrencias((anteriores) => [
+      ...anteriores,
+      novaOcorrencia,
+    ]);
+
+  }
+
+
   return (
     <NavigationContainer>
 
@@ -21,6 +38,7 @@ export default function App() {
           }}
         />
 
+
         <Stack.Screen
           name="Home"
           component={HomeScreen}
@@ -29,13 +47,39 @@ export default function App() {
           }}
         />
 
+
+        <Stack.Screen
+          name="TodasOcorrencias"
+          options={{
+            title: 'Todas as ocorrências',
+          }}
+        >
+
+          {(props) => (
+            <TodasOcorrenciasScreen
+              {...props}
+              ocorrencias={ocorrencias}
+            />
+          )}
+
+        </Stack.Screen>
+
+
         <Stack.Screen
           name="NovaOcorrencia"
-          component={NovaOcorrenciaScreen}
           options={{
             title: 'Nova ocorrência',
           }}
-        />
+        >
+
+          {(props) => (
+            <NovaOcorrenciaScreen
+              {...props}
+              adicionarOcorrencia={adicionarOcorrencia}
+            />
+          )}
+
+        </Stack.Screen>
 
       </Stack.Navigator>
 

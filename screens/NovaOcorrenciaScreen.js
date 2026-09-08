@@ -16,21 +16,27 @@ import {
   useCameraPermissions,
 } from 'expo-camera';
 
+import * as Location from 'expo-location';
 
-export default function NovaOcorrenciaScreen({ navigation }) {
 
-  // -------------------------
+export default function NovaOcorrenciaScreen({
+  navigation,
+  adicionarOcorrencia,
+}) {
+
+  // =================================
   // DADOS DA OCORRÊNCIA
-  // -------------------------
+  // =================================
 
   const [descricao, setDescricao] = useState('');
   const [nivel, setNivel] = useState('');
   const [foto, setFoto] = useState(null);
+  const [localizacao, setLocalizacao] = useState(null);
 
 
-  // -------------------------
+  // =================================
   // CÂMERA
-  // -------------------------
+  // =================================
 
   const [cameraAberta, setCameraAberta] = useState(false);
 
@@ -40,9 +46,9 @@ export default function NovaOcorrenciaScreen({ navigation }) {
   const cameraRef = useRef(null);
 
 
-  // -------------------------
+  // =================================
   // ABRIR CÂMERA
-  // -------------------------
+  // =================================
 
   async function abrirCamera() {
 
@@ -51,7 +57,11 @@ export default function NovaOcorrenciaScreen({ navigation }) {
       const resultado = await requestPermission();
 
       if (!resultado.granted) {
-        alert('Precisamos de permissão para usar a câmera.');
+
+        alert(
+          'Precisamos de permissão para usar a câmera.'
+        );
+
         return;
       }
     }
@@ -60,35 +70,133 @@ export default function NovaOcorrenciaScreen({ navigation }) {
   }
 
 
-  // -------------------------
+  // =================================
   // TIRAR FOTO
-  // -------------------------
+  // =================================
 
   async function tirarFoto() {
 
-    if (cameraRef.current) {
-
-      const fotoTirada =
-        await cameraRef.current.takePictureAsync();
-
-      setFoto(fotoTirada.uri);
-
-      setCameraAberta(false);
+    if (!cameraRef.current) {
+      return;
     }
+
+    const fotoTirada =
+      await cameraRef.current.takePictureAsync();
+
+    setFoto(fotoTirada.uri);
+
+    setCameraAberta(false);
   }
 
 
-  // -------------------------
+  // =================================
+  // PEGAR LOCALIZAÇÃO
+  // =================================
+
+  async function pegarLocalizacao() {
+
+    const { status } =
+      await Location.requestForegroundPermissionsAsync();
+
+    if (status !== 'granted') {
+
+      alert(
+        'Precisamos da sua localização para registrar a ocorrência.'
+      );
+
+      return;
+    }
+
+    const local =
+      await Location.getCurrentPositionAsync({});
+
+    setLocalizacao(local.coords);
+  }
+
+
+  // =================================
+  // REGISTRAR OCORRÊNCIA
+  // =================================
+
+  function registrarOcorrencia() {
+
+    // Verificar descrição
+    if (descricao.trim() === '') {
+
+      alert('Digite uma descrição.');
+
+      return;
+    }
+
+
+    // Verificar nível
+    if (nivel === '') {
+
+      alert('Escolha o nível de perigo.');
+
+      return;
+    }
+
+
+    // Verificar foto
+    if (!foto) {
+
+      alert('Tire uma foto da ocorrência.');
+
+      return;
+    }
+
+
+    // Verificar localização
+    if (!localizacao) {
+
+      alert('Pegue a localização da ocorrência.');
+
+      return;
+    }
+
+
+    // Criar ocorrência
+    const novaOcorrencia = {
+
+      id: Date.now(),
+
+      descricao: descricao,
+
+      nivel: nivel,
+
+      foto: foto,
+
+      latitude: localizacao.latitude,
+
+      longitude: localizacao.longitude,
+
+    };
+
+
+    // Enviar para o App.js
+    adicionarOcorrencia(novaOcorrencia);
+
+
+    alert('Ocorrência registrada!');
+
+
+    // Ir para o mapa
+    navigation.navigate('TodasOcorrencias');
+  }
+
+
+  // =================================
   // TELA
-  // -------------------------
+  // =================================
 
   return (
 
     cameraAberta ? (
 
-      // =========================
+      // =================================
       // TELA DA CÂMERA
-      // =========================
+      // =================================
 
       <View style={styles.cameraContainer}>
 
@@ -115,9 +223,9 @@ export default function NovaOcorrenciaScreen({ navigation }) {
 
     ) : (
 
-      // =========================
+      // =================================
       // FORMULÁRIO
-      // =========================
+      // =================================
 
       <ScrollView
         contentContainerStyle={styles.container}
@@ -128,7 +236,9 @@ export default function NovaOcorrenciaScreen({ navigation }) {
         </Text>
 
 
-        {/* FOTO */}
+        {/* =========================
+            FOTO
+        ========================= */}
 
         <Text style={styles.label}>
           Foto
@@ -136,10 +246,12 @@ export default function NovaOcorrenciaScreen({ navigation }) {
 
 
         {foto && (
+
           <Image
             source={{ uri: foto }}
             style={styles.preview}
           />
+
         )}
 
 
@@ -149,7 +261,9 @@ export default function NovaOcorrenciaScreen({ navigation }) {
         />
 
 
-        {/* DESCRIÇÃO */}
+        {/* =========================
+            DESCRIÇÃO
+        ========================= */}
 
         <Text style={styles.label}>
           Descrição
@@ -166,7 +280,9 @@ export default function NovaOcorrenciaScreen({ navigation }) {
         />
 
 
-        {/* NÍVEL */}
+        {/* =========================
+            NÍVEL DE PERIGO
+        ========================= */}
 
         <Text style={styles.label}>
           Nível de perigo
@@ -225,38 +341,60 @@ export default function NovaOcorrenciaScreen({ navigation }) {
         </View>
 
 
-        {/* REGISTRAR */}
+        {/* =========================
+            LOCALIZAÇÃO
+        ========================= */}
+
+        <Text style={styles.label}>
+          Localização
+        </Text>
+
+
+        {localizacao ? (
+
+          <View style={styles.localizacaoObtida}>
+
+            <Text>
+              📍 Localização obtida
+            </Text>
+
+            <Text style={styles.coordenadas}>
+              Latitude: {localizacao.latitude.toFixed(6)}
+            </Text>
+
+            <Text style={styles.coordenadas}>
+              Longitude: {localizacao.longitude.toFixed(6)}
+            </Text>
+
+          </View>
+
+        ) : (
+
+          <Button
+            title="📍 Pegar minha localização"
+            onPress={pegarLocalizacao}
+          />
+
+        )}
+
+
+        {/* =========================
+            REGISTRAR
+        ========================= */}
 
         <View style={styles.botaoRegistrar}>
 
           <Button
             title="Registrar ocorrência"
-            onPress={() => {
-
-              if (descricao.trim() === '') {
-                alert('Digite uma descrição.');
-                return;
-              }
-
-              if (nivel === '') {
-                alert('Escolha o nível de perigo.');
-                return;
-              }
-
-              if (!foto) {
-                alert('Tire uma foto da ocorrência.');
-                return;
-              }
-
-              alert('Ocorrência registrada!');
-
-            }}
+            onPress={registrarOcorrencia}
           />
 
         </View>
 
 
-        {/* VOLTAR */}
+        {/* =========================
+            VOLTAR
+        ========================= */}
 
         <View style={styles.botaoVoltar}>
 
@@ -340,6 +478,21 @@ const styles = StyleSheet.create({
   },
 
 
+  localizacaoObtida: {
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+  },
+
+
+  coordenadas: {
+    marginTop: 5,
+    fontSize: 13,
+    color: '#555',
+  },
+
+
   botaoRegistrar: {
     marginTop: 30,
   },
@@ -350,9 +503,9 @@ const styles = StyleSheet.create({
   },
 
 
-  // =========================
+  // =================================
   // CÂMERA
-  // =========================
+  // =================================
 
   cameraContainer: {
     flex: 1,

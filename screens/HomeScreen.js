@@ -61,8 +61,8 @@ export default function HomeScreen({ navigation, route }) {
         <View style={styles.espaco} />
 
         <Button
-          title="Minhas ocorrências"
-          onPress={() => alert('Ainda vamos criar essa tela!')}
+          title="Todas as ocorrências"
+          onPress={() => navigation.navigate('TodasOcorrencias')}
         />
       </View>
 

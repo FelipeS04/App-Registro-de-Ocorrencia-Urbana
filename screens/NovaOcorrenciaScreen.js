@@ -10,36 +10,28 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-
 import {
   CameraView,
   useCameraPermissions,
 } from 'expo-camera';
-
 import * as Location from 'expo-location';
-
+import FaixasDecorativas from '../components/FaixasDecorativas';
 
 export default function NovaOcorrenciaScreen({
   navigation,
   adicionarOcorrencia,
 }) {
-
   // =================================
   // DADOS DA OCORRÊNCIA
   // =================================
-
   const [descricao, setDescricao] = useState('');
   const [nivel, setNivel] = useState('');
   const [foto, setFoto] = useState(null);
   const [localizacao, setLocalizacao] = useState(null);
-
-
   // =================================
   // CÂMERA
   // =================================
-
   const [cameraAberta, setCameraAberta] = useState(false);
-
   const [permission, requestPermission] =
     useCameraPermissions();
 
@@ -51,40 +43,28 @@ export default function NovaOcorrenciaScreen({
   // =================================
 
   async function abrirCamera() {
-
     if (!permission?.granted) {
-
       const resultado = await requestPermission();
-
       if (!resultado.granted) {
-
         alert(
           'Precisamos de permissão para usar a câmera.'
         );
-
         return;
       }
     }
 
     setCameraAberta(true);
   }
-
-
   // =================================
   // TIRAR FOTO
   // =================================
 
   async function tirarFoto() {
-
     if (!cameraRef.current) {
       return;
     }
-
-    const fotoTirada =
-      await cameraRef.current.takePictureAsync();
-
+    const fotoTirada = await cameraRef.current.takePictureAsync();
     setFoto(fotoTirada.uri);
-
     setCameraAberta(false);
   }
 
@@ -95,85 +75,50 @@ export default function NovaOcorrenciaScreen({
 
   async function pegarLocalizacao() {
 
-    const { status } =
-      await Location.requestForegroundPermissionsAsync();
-
+    const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-
       alert(
         'Precisamos da sua localização para registrar a ocorrência.'
       );
-
       return;
     }
-
-    const local =
-      await Location.getCurrentPositionAsync({});
-
+    const local = await Location.getCurrentPositionAsync({});
     setLocalizacao(local.coords);
   }
-
-
   // =================================
   // REGISTRAR OCORRÊNCIA
   // =================================
 
   function registrarOcorrencia() {
-
     // Verificar descrição
     if (descricao.trim() === '') {
-
       alert('Digite uma descrição.');
-
       return;
     }
-
-
     // Verificar nível
     if (nivel === '') {
-
       alert('Escolha o nível de perigo.');
-
       return;
     }
-
-
     // Verificar foto
     if (!foto) {
-
       alert('Tire uma foto da ocorrência.');
-
       return;
     }
-
-
     // Verificar localização
     if (!localizacao) {
-
       alert('Pegue a localização da ocorrência.');
-
       return;
     }
-
-
     // Criar ocorrência
     const novaOcorrencia = {
-
       id: Date.now(),
-
       descricao: descricao,
-
       nivel: nivel,
-
       foto: foto,
-
       latitude: localizacao.latitude,
-
       longitude: localizacao.longitude,
-
     };
-
-
     // Enviar para o App.js
     adicionarOcorrencia(novaOcorrencia);
 
@@ -184,41 +129,30 @@ export default function NovaOcorrenciaScreen({
     // Ir para o mapa
     navigation.navigate('TodasOcorrencias');
   }
-
-
   // =================================
   // TELA
   // =================================
-
   return (
-
     cameraAberta ? (
-
       // =================================
       // TELA DA CÂMERA
       // =================================
 
       <View style={styles.cameraContainer}>
-
         <CameraView
           ref={cameraRef}
           style={styles.camera}
         />
-
         <View style={styles.botoesCamera}>
-
           <Button
             title="📷 Tirar foto"
             onPress={tirarFoto}
           />
-
           <Button
             title="Cancelar"
             onPress={() => setCameraAberta(false)}
           />
-
         </View>
-
       </View>
 
     ) : (
@@ -230,12 +164,9 @@ export default function NovaOcorrenciaScreen({
       <ScrollView
         contentContainerStyle={styles.container}
       >
-
         <Text style={styles.titulo}>
           Nova ocorrência
         </Text>
-
-
         {/* =========================
             FOTO
         ========================= */}
@@ -243,33 +174,24 @@ export default function NovaOcorrenciaScreen({
         <Text style={styles.label}>
           Foto
         </Text>
-
-
         {foto && (
 
           <Image
             source={{ uri: foto }}
             style={styles.preview}
           />
-
         )}
-
-
         <Button
           title="📷 Tirar foto"
           onPress={abrirCamera}
         />
 
-
         {/* =========================
             DESCRIÇÃO
         ========================= */}
-
         <Text style={styles.label}>
           Descrição
         </Text>
-
-
         <TextInput
           style={styles.textarea}
           placeholder="Descreva o problema encontrado..."
@@ -279,18 +201,13 @@ export default function NovaOcorrenciaScreen({
           onChangeText={setDescricao}
         />
 
-
         {/* =========================
             NÍVEL DE PERIGO
         ========================= */}
-
         <Text style={styles.label}>
           Nível de perigo
         </Text>
-
-
         <View style={styles.niveis}>
-
           <TouchableOpacity
             style={[
               styles.nivel,
@@ -299,14 +216,10 @@ export default function NovaOcorrenciaScreen({
             ]}
             onPress={() => setNivel('Seguro')}
           >
-
             <Text>
               🟢 Seguro
             </Text>
-
           </TouchableOpacity>
-
-
           <TouchableOpacity
             style={[
               styles.nivel,
@@ -315,14 +228,10 @@ export default function NovaOcorrenciaScreen({
             ]}
             onPress={() => setNivel('Moderado')}
           >
-
             <Text>
               🟡 Moderado
             </Text>
-
           </TouchableOpacity>
-
-
           <TouchableOpacity
             style={[
               styles.nivel,
@@ -331,13 +240,10 @@ export default function NovaOcorrenciaScreen({
             ]}
             onPress={() => setNivel('Perigoso')}
           >
-
             <Text>
               🔴 Perigoso
             </Text>
-
           </TouchableOpacity>
-
         </View>
 
 

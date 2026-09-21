@@ -11,6 +11,7 @@ import {
   Dimensions,
   Pressable,
 } from 'react-native';
+import FaixasDecorativas from '../components/FaixasDecorativas';
 
 const { width } = Dimensions.get('window');
 
@@ -40,6 +41,8 @@ export default function HomeScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <FaixasDecorativas />
+
       {/* Header: foto + nome no topo */}
       <View style={styles.header}>
         <TouchableOpacity onPress={abrirMenu} style={styles.avatarArea}>
@@ -120,6 +123,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  
 
   header: {
     position: 'absolute',

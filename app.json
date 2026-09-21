@@ -24,6 +24,23 @@
 
     "plugins": [
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Permitir que $(PRODUCT_NAME) use sua localização."
+        }
+      ],
+
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 400,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+
+      [
         "expo-media-library",
         {
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
@@ -35,6 +52,7 @@
           ]
         }
       ],
+
       "expo-status-bar"
     ]
   }

@@ -17,8 +17,7 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation, route }) {
   const nome = route.params?.nome || 'Convidado';
-  const fotoUsuario = route.params?.foto || 'https://i.pravatar.cc/150?img=3';
-
+  const fotoUsuario = route.params?.foto || require('../assets/use.png');
   const [menuAberto, setMenuAberto] = useState(false);
   const animacao = useRef(new Animated.Value(-width * 0.7)).current;
 
@@ -46,7 +45,7 @@ export default function HomeScreen({ navigation, route }) {
       {/* Header: foto + nome no topo */}
       <View style={styles.header}>
         <TouchableOpacity onPress={abrirMenu} style={styles.avatarArea}>
-          <Image source={{ uri: fotoUsuario }} style={styles.avatar} />
+          <Image source={fotoUsuario} style={styles.avatar} />
           <Text style={styles.usuario}>{nome}</Text>
         </TouchableOpacity>
       </View>
@@ -82,7 +81,7 @@ export default function HomeScreen({ navigation, route }) {
         ]}
       >
         <View style={styles.menuHeader}>
-          <Image source={{ uri: fotoUsuario }} style={styles.avatarGrande} />
+          <Image source={fotoUsuario} style={styles.avatarGrande} />
           <Text style={styles.nomeMenu}>{nome}</Text>
         </View>
 
@@ -95,23 +94,20 @@ export default function HomeScreen({ navigation, route }) {
 
         <TouchableOpacity style={styles.itemMenu} onPress={() => {
           fecharMenu();
-          // navigation.navigate('Configuracoes');
+
         }}>
           <Text style={styles.textoItem}>⚙️ Configurações</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.itemMenu} onPress={() => {
           fecharMenu();
-          // navigation.navigate('Sobre');
+
         }}>
           <Text style={styles.textoItem}>ℹ️ Sobre o App</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.itemMenu, styles.sair]} onPress={() => {
-          fecharMenu();
-          // lógica de logout
-        }}>
-          <Text style={[styles.textoItem, { color: '#e63946' }]}>🚪 Sair</Text>
+        <TouchableOpacity style={[styles.itemMenu, styles.sair]} onPress={() => {navigation.replace('Login')}}>
+          <Text style={[styles.textoItem, { color: '#e63946' }]}>Sair</Text>
         </TouchableOpacity>
       </Animated.View>
     </SafeAreaView>
@@ -124,7 +120,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   
-
   header: {
     position: 'absolute',
     top: 12,
@@ -142,7 +137,7 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
     borderWidth: 2,
-    borderColor: '#e63946',
+    borderColor: '#0fb3ff',
     marginRight: 10,
   },
 
@@ -176,7 +171,6 @@ const styles = StyleSheet.create({
     height: 20,
   },
 
-  // Menu lateral
   menuLateral: {
     position: 'absolute',
     top: 0,
@@ -204,7 +198,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: '#e63946',
+    borderColor: '#00aeff',
     marginBottom: 12,
   },
 

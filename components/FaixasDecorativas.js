@@ -24,8 +24,8 @@ const styles = StyleSheet.create({
   faixaAzul: {
     position: 'absolute',
     top: -height * 0.58,
-    right: width * 0.30,
-    width: width * 1.01,
+    right: width * 0.50,
+    width: width * 0.61,
     height: height * 1.3,
     backgroundColor: '#1565C0',
     transform: [
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   faixaAmarela: {
     position: 'absolute',
     top: -height * 0.32,
-    right: width * 0.48,
+    right: width * 0.80,
     width: 30,
     height: height * 1.25,
     backgroundColor: '#FBC02D',

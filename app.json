@@ -1,11 +1,18 @@
 {
   "expo": {
-    "name": "Ocorrências Urbanas",
-    "slug": "ocorrencias-urbanas",
+    "name": "Mapa",
+    "slug": "Mapa",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
 
     "ios": {
       "supportsTablet": true
@@ -15,7 +22,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
 
     "web": {
@@ -26,34 +37,10 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Permitir que $(PRODUCT_NAME) use sua localização."
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
         }
-      ],
-
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 400,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
-        }
-      ],
-
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
-          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
-          "isAccessMediaLocationEnabled": true,
-          "granularPermissions": [
-            "audio",
-            "photo"
-          ]
-        }
-      ],
-
-      "expo-status-bar"
+      ]
     ]
   }
 }

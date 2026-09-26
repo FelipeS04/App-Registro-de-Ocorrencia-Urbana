@@ -300,13 +300,27 @@ const styles = StyleSheet.create({
   faixaAzul: {
     position: 'absolute',
     width: width * 1.5,
-    height: 75,
+    height: 200,
     backgroundColor: '#1565C0',
     top: 20,
-    left: -width * 0.35,
+    left: -width * 0.75,
     transform: [
       {
-        rotate: '-12deg',
+        rotate: '-42deg',
+      },
+    ],
+  },
+
+  faixaAzul2: {
+    position: 'absolute',
+    width: width * 1.5,
+    height: 200,
+    backgroundColor: '#1565C0',
+    top: -20,
+    left: -width * 0.75,
+    transform: [
+      {
+        rotate: '-2deg',
       },
     ],
   },
@@ -320,7 +334,7 @@ const styles = StyleSheet.create({
     left: -width * 0.3,
     transform: [
       {
-        rotate: '-12deg',
+        rotate: '-42deg',
       },
     ],
   },

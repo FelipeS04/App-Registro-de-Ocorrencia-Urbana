@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 
 import {
@@ -10,49 +11,51 @@ import {
   Alert,
 } from 'react-native';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import * as LocalAuthentication from 'expo-local-authentication';
+
+import {
+  buscarUsuario,
+  buscarUsuarioPorEmail,
+} from '../database';
 
 const { width } = Dimensions.get('window');
 
-const CHAVE_USUARIO = '@ocorrencias_usuario';
-
 export default function LoginScreen({ navigation }) {
-  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [biometriaDisponivel, setBiometriaDisponivel] = useState(false);
+  const [contaBiometrica, setContaBiometrica] = useState(null);
 
-  const [biometriaDisponivel, setBiometriaDisponivel] =
-    useState(false);
-
-  const [usuarioCadastrado, setUsuarioCadastrado] =
-    useState(false);
-
-  // Verifica se existe usuário salvo
   useEffect(() => {
-    verificarUsuario();
     verificarBiometria();
   }, []);
 
-  async function verificarUsuario() {
-    try {
-      const usuarioSalvo =
-        await AsyncStorage.getItem(CHAVE_USUARIO);
+  useEffect(() => {
+    let ativo = true;
 
-      if (usuarioSalvo) {
-        setUsuarioCadastrado(true);
+    async function verificarConta() {
+      setContaBiometrica(null);
 
-        const usuario = JSON.parse(usuarioSalvo);
+      if (!email.trim()) return;
 
-        // Preenche automaticamente o nome
-        setNome(usuario.nome);
+      try {
+        const usuario = await buscarUsuarioPorEmail(email.trim());
+
+        if (ativo && usuario && usuario.biometria_ativa === 1) {
+          setContaBiometrica(usuario);
+        }
+      } catch (erro) {
+        console.log('Erro ao verificar conta:', erro);
       }
-    } catch (erro) {
-      console.log('Erro ao verificar usuário:', erro);
     }
-  }
 
-  // Verifica biometria
+    verificarConta();
+
+    return () => {
+      ativo = false;
+    };
+  }, [email]);
+
   async function verificarBiometria() {
     try {
       const possuiHardware =
@@ -65,182 +68,120 @@ export default function LoginScreen({ navigation }) {
         possuiHardware && possuiBiometriaCadastrada
       );
     } catch (erro) {
-      console.log(
-        'Erro ao verificar biometria:',
-        erro
-      );
+      console.log('Erro ao verificar biometria:', erro);
+      setBiometriaDisponivel(false);
     }
   }
 
-  // Login com nome e senha
+  function entrarNaConta(usuario) {
+    navigation.replace('Principal', {
+      usuarioId: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email,
+      foto_perfil: usuario.foto_perfil,
+      biometria_ativa: usuario.biometria_ativa,
+    });
+  }
+
   async function entrar() {
-    if (nome.trim() === '') {
-      Alert.alert(
-        'Atenção',
-        'Digite seu nome.'
-      );
+    if (email.trim() === '') {
+      Alert.alert('Atenção', 'Digite seu e-mail.');
       return;
     }
 
     if (senha === '') {
-      Alert.alert(
-        'Atenção',
-        'Digite sua senha.'
-      );
+      Alert.alert('Atenção', 'Digite sua senha.');
       return;
     }
 
     try {
-      const usuarioSalvo =
-        await AsyncStorage.getItem(CHAVE_USUARIO);
+      const usuario = await buscarUsuario(email.trim(), senha);
 
-      // Não existe cadastro
-      if (!usuarioSalvo) {
-        Alert.alert(
-          'Nenhuma conta encontrada',
-          'Faça seu cadastro primeiro.'
-        );
-
+      if (!usuario) {
+        Alert.alert('Login inválido', 'E-mail ou senha incorretos.');
         return;
       }
 
-      const usuario = JSON.parse(usuarioSalvo);
-
-      // Verifica nome
-      if (
-        nome.trim().toLowerCase() !==
-        usuario.nome.toLowerCase()
-      ) {
-        Alert.alert(
-          'Login inválido',
-          'Nome ou senha incorretos.'
-        );
-
-        return;
-      }
-
-      // Verifica senha
-      if (senha !== usuario.senha) {
-        Alert.alert(
-          'Login inválido',
-          'Nome ou senha incorretos.'
-        );
-
-        return;
-      }
-
-      // Login correto
-      navigation.replace('Home', {
-        nome: usuario.nome,
-        email: usuario.email,
-      });
-
+      entrarNaConta(usuario);
     } catch (erro) {
-      console.log(
-        'Erro ao realizar login:',
-        erro
-      );
-
-      Alert.alert(
-        'Erro',
-        'Não foi possível realizar o login.'
-      );
+      console.log('Erro ao realizar login:', erro);
+      Alert.alert('Erro', 'Não foi possível realizar o login.');
     }
   }
 
-  // Login com biometria
   async function entrarComBiometria() {
-    if (!biometriaDisponivel) {
-      Alert.alert(
-        'Biometria indisponível',
-        'Este dispositivo não possui biometria configurada.'
-      );
-
-      return;
-    }
-
     try {
-      const usuarioSalvo =
-        await AsyncStorage.getItem(CHAVE_USUARIO);
-
-      if (!usuarioSalvo) {
+      if (!contaBiometrica) {
         Alert.alert(
-          'Nenhuma conta encontrada',
-          'Faça seu cadastro primeiro.'
+          'Biometria indisponível',
+          'Esta conta não possui login biométrico ativado.'
         );
-
         return;
       }
 
-      const usuario = JSON.parse(usuarioSalvo);
+      const usuario = await buscarUsuarioPorEmail(
+        contaBiometrica.email
+      );
+
+      if (!usuario || usuario.biometria_ativa !== 1) {
+        Alert.alert(
+          'Biometria desativada',
+          'Esta conta não possui mais autorização para login biométrico.'
+        );
+        setContaBiometrica(null);
+        return;
+      }
 
       const resultado =
         await LocalAuthentication.authenticateAsync({
           promptMessage: 'Confirme sua identidade',
           cancelLabel: 'Cancelar',
+          disableDeviceFallback: true,
         });
 
-      if (resultado.success) {
-        navigation.replace('Home', {
-          nome: usuario.nome,
-          email: usuario.email,
-        });
-      } else {
+      if (!resultado.success) {
         Alert.alert(
           'Autenticação',
-          'Autenticação não realizada.'
+          'A autenticação biométrica não foi realizada.'
         );
+        return;
       }
 
+      entrarNaConta(usuario);
     } catch (erro) {
-      console.log(
-        'Erro na biometria:',
-        erro
-      );
-
+      console.log('Erro na biometria:', erro);
       Alert.alert(
         'Erro',
-        'Não foi possível realizar a autenticação.'
+        'Não foi possível realizar a autenticação biométrica.'
       );
     }
   }
 
   return (
     <View style={styles.container}>
-
-      {/* FAIXAS */}
       <View style={styles.faixaAzul} />
       <View style={styles.faixaAmarela} />
 
       <View style={styles.conteudo}>
+        <Text style={styles.icone}>🚨</Text>
 
-        <Text style={styles.icone}>
-          🚨
-        </Text>
-
-        <Text style={styles.titulo}>
-          Ocorrências
-        </Text>
-
-        <Text style={styles.subtitulo}>
-          Urbanas
-        </Text>
+        <Text style={styles.titulo}>Ocorrências</Text>
+        <Text style={styles.subtitulo}>Urbanas</Text>
 
         <Text style={styles.instrucao}>
           Entre no aplicativo
         </Text>
 
-        {/* NOME */}
         <TextInput
           style={styles.input}
-          placeholder="Digite seu nome"
+          placeholder="Digite seu e-mail"
           placeholderTextColor="#888"
-          value={nome}
-          onChangeText={setNome}
-          autoCapitalize="words"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
         />
 
-        {/* SENHA */}
         <TextInput
           style={styles.input}
           placeholder="Digite sua senha"
@@ -250,33 +191,25 @@ export default function LoginScreen({ navigation }) {
           secureTextEntry
         />
 
-        {/* ENTRAR */}
         <TouchableOpacity
           style={styles.botao}
           onPress={entrar}
         >
-          <Text style={styles.textoBotao}>
-            Entrar
-          </Text>
+          <Text style={styles.textoBotao}>Entrar</Text>
         </TouchableOpacity>
 
-        {/* BIOMETRIA */}
-        {biometriaDisponivel && usuarioCadastrado && (
+        {biometriaDisponivel && contaBiometrica && (
           <TouchableOpacity
             style={styles.botaoBiometria}
             onPress={entrarComBiometria}
           >
-            <Text style={styles.iconeBiometria}>
-              🔐
-            </Text>
-
+            <Text style={styles.iconeBiometria}>🔐</Text>
             <Text style={styles.textoBiometria}>
               Entrar com biometria
             </Text>
           </TouchableOpacity>
         )}
 
-        {/* CADASTRO */}
         <TouchableOpacity
           onPress={() => navigation.navigate('Cadastro')}
         >
@@ -284,7 +217,6 @@ export default function LoginScreen({ navigation }) {
             Não possui uma conta? Cadastre-se
           </Text>
         </TouchableOpacity>
-
       </View>
     </View>
   );
@@ -304,25 +236,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1565C0',
     top: 20,
     left: -width * 0.75,
-    transform: [
-      {
-        rotate: '-42deg',
-      },
-    ],
-  },
-
-  faixaAzul2: {
-    position: 'absolute',
-    width: width * 1.5,
-    height: 200,
-    backgroundColor: '#1565C0',
-    top: -20,
-    left: -width * 0.75,
-    transform: [
-      {
-        rotate: '-2deg',
-      },
-    ],
+    transform: [{ rotate: '-42deg' }],
   },
 
   faixaAmarela: {
@@ -332,11 +246,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFD600',
     top: 85,
     left: -width * 0.3,
-    transform: [
-      {
-        rotate: '-42deg',
-      },
-    ],
+    transform: [{ rotate: '-42deg' }],
   },
 
   conteudo: {

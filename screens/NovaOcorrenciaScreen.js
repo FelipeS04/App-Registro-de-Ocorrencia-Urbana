@@ -15,11 +15,12 @@ import {
   useCameraPermissions,
 } from 'expo-camera';
 import * as Location from 'expo-location';
+import { salvarOcorrencia } from '../database';
 import FaixasDecorativas from '../components/FaixasDecorativas';
 
 export default function NovaOcorrenciaScreen({
   navigation,
-  adicionarOcorrencia,
+  route,
 }) {
   // =================================
   // DADOS DA OCORRÊNCIA
@@ -28,6 +29,7 @@ export default function NovaOcorrenciaScreen({
   const [nivel, setNivel] = useState('');
   const [foto, setFoto] = useState(null);
   const [localizacao, setLocalizacao] = useState(null);
+  const usuarioId = route.params?.usuarioId;
   // =================================
   // CÂMERA
   // =================================
@@ -89,45 +91,50 @@ export default function NovaOcorrenciaScreen({
   // REGISTRAR OCORRÊNCIA
   // =================================
 
-  function registrarOcorrencia() {
-    // Verificar descrição
+  async function registrarOcorrencia() {
     if (descricao.trim() === '') {
       alert('Digite uma descrição.');
       return;
     }
-    // Verificar nível
+
     if (nivel === '') {
       alert('Escolha o nível de perigo.');
       return;
     }
-    // Verificar foto
+
     if (!foto) {
       alert('Tire uma foto da ocorrência.');
       return;
     }
-    // Verificar localização
+
     if (!localizacao) {
       alert('Pegue a localização da ocorrência.');
       return;
     }
-    // Criar ocorrência
-    const novaOcorrencia = {
-      id: Date.now(),
-      descricao: descricao,
-      nivel: nivel,
-      foto: foto,
-      latitude: localizacao.latitude,
-      longitude: localizacao.longitude,
-    };
-    // Enviar para o App.js
-    adicionarOcorrencia(novaOcorrencia);
 
+    if (!usuarioId) {
+      alert('Não foi possível identificar sua conta. Entre novamente.');
+      return;
+    }
 
-    alert('Ocorrência registrada!');
+    try {
+      const novaOcorrencia = {
+        descricao: descricao.trim(),
+        nivel,
+        foto,
+        latitude: localizacao.latitude,
+        longitude: localizacao.longitude,
+      };
 
+      await salvarOcorrencia(novaOcorrencia, usuarioId);
 
-    // Ir para o mapa
-    navigation.navigate('TodasOcorrencias');
+      alert('Ocorrência registrada!');
+      navigation.navigate('TodasOcorrencias');
+
+    } catch (erro) {
+      console.log('Erro ao registrar ocorrência:', erro);
+      alert('Não foi possível registrar a ocorrência.');
+    }
   }
   // =================================
   // TELA

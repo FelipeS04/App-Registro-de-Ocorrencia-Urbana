@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { cadastrarUsuario } from '../database';
 import {
   View,
   Text,
@@ -9,11 +10,10 @@ import {
   Dimensions,
 } from 'react-native';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
-const CHAVE_USUARIO = '@ocorrencias_usuario';
+
 
 export default function CadastroScreen({ navigation }) {
   const [nome, setNome] = useState('');
@@ -22,72 +22,47 @@ export default function CadastroScreen({ navigation }) {
   const [confirmarSenha, setConfirmarSenha] = useState('');
 
   async function cadastrar() {
-    // Verifica nome
     if (nome.trim() === '') {
       Alert.alert('Atenção', 'Digite seu nome.');
       return;
     }
 
-    // Verifica e-mail
     if (email.trim() === '') {
       Alert.alert('Atenção', 'Digite seu e-mail.');
       return;
     }
 
-    // Verifica senha
-    if (senha === '') {
-      Alert.alert('Atenção', 'Digite uma senha.');
-      return;
-    }
-
-    // Verifica tamanho da senha
     if (senha.length < 4) {
-      Alert.alert(
-        'Atenção',
-        'A senha deve ter pelo menos 4 caracteres.'
-      );
+      Alert.alert('Atenção', 'A senha deve ter pelo menos 4 caracteres.');
       return;
     }
 
-    // Confirma senha
     if (senha !== confirmarSenha) {
-      Alert.alert(
-        'Atenção',
-        'As senhas não são iguais.'
-      );
+      Alert.alert('Atenção', 'As senhas não são iguais.');
       return;
     }
 
     try {
-      const usuario = {
-        nome: nome.trim(),
-        email: email.trim(),
-        senha: senha,
-      };
-
-      await AsyncStorage.setItem(
-        CHAVE_USUARIO,
-        JSON.stringify(usuario)
+      await cadastrarUsuario(
+        nome.trim(),
+        email.trim().toLowerCase(),
+        senha
       );
 
       Alert.alert(
         'Cadastro realizado!',
         'Sua conta foi criada com sucesso.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Login'),
-          },
-        ]
+        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
       );
 
     } catch (erro) {
-      console.log('Erro ao salvar usuário:', erro);
+      console.log('Erro ao cadastrar:', erro);
 
-      Alert.alert(
-        'Erro',
-        'Não foi possível realizar o cadastro.'
-      );
+      if (erro.message?.includes('UNIQUE')) {
+        Alert.alert('E-mail já cadastrado', 'Utilize outro e-mail.');
+      } else {
+        Alert.alert('Erro', 'Não foi possível realizar o cadastro.');
+      }
     }
   }
 

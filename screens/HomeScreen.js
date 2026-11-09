@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
-  Button,
   StyleSheet,
   Image,
   SafeAreaView,
@@ -11,18 +11,41 @@ import {
   Dimensions,
   Pressable,
 } from 'react-native';
+
+import { useFocusEffect } from '@react-navigation/native';
 import FaixasDecorativas from '../components/FaixasDecorativas';
+import { listarOcorrencias } from '../database';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation, route }) {
   const nome = route.params?.nome || 'Convidado';
+  const email = route.params?.email || '';
   const fotoUsuario = route.params?.foto || require('../assets/use.png');
+
+  const [ocorrencias, setOcorrencias] = useState([]);
   const [menuAberto, setMenuAberto] = useState(false);
+
   const animacao = useRef(new Animated.Value(-width * 0.7)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      async function carregarOcorrencias() {
+        try {
+          const dados = await listarOcorrencias();
+          setOcorrencias(dados.slice(0, 3));
+        } catch (erro) {
+          console.log('Erro ao carregar ocorrências recentes:', erro);
+        }
+      }
+
+      carregarOcorrencias();
+    }, [])
+  );
 
   const abrirMenu = () => {
     setMenuAberto(true);
+
     Animated.timing(animacao, {
       toValue: 0,
       duration: 250,
@@ -38,11 +61,17 @@ export default function HomeScreen({ navigation, route }) {
     }).start(() => setMenuAberto(false));
   };
 
+  function sair() {
+    navigation.getParent()?.getParent()?.reset({
+      index: 0,
+      routes: [{ name: 'Login' }],
+    });
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <FaixasDecorativas />
 
-      {/* Header: foto + nome no topo */}
       <View style={styles.header}>
         <TouchableOpacity onPress={abrirMenu} style={styles.avatarArea}>
           <Image source={fotoUsuario} style={styles.avatar} />
@@ -50,30 +79,82 @@ export default function HomeScreen({ navigation, route }) {
         </TouchableOpacity>
       </View>
 
-      {/* Conteúdo principal */}
       <View style={styles.container}>
-        <Text style={styles.titulo}>🚨 Ocorrências Urbanas</Text>
-        <Text style={styles.descricao}>O que você deseja fazer?</Text>
+        <Text style={styles.titulo}>
+          🚨 Ocorrências Urbanas
+        </Text>
 
-        <Button
-          title="Nova ocorrência"
+        <Text style={styles.descricao}>
+          O que você deseja fazer?
+        </Text>
+
+        <Text style={styles.tituloUltimas}>
+          Últimas ocorrências
+        </Text>
+
+        <View style={styles.caixaOcorrencias}>
+          {ocorrencias.length === 0 ? (
+            <Text style={styles.semOcorrencias}>
+              Nenhuma ocorrência registrada.
+            </Text>
+          ) : (
+            ocorrencias.map((ocorrencia) => (
+              <View
+                key={ocorrencia.id}
+                style={styles.ocorrenciaItem}
+              >
+                <View style={styles.ocorrenciaTexto}>
+                  <Text
+                    style={styles.descricaoOcorrencia}
+                    numberOfLines={1}
+                  >
+                    🚨 {ocorrencia.descricao}
+                  </Text>
+
+                  <Text style={styles.nivelOcorrencia}>
+                    Nível: {ocorrencia.nivel}
+                  </Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={styles.botaoHome}
           onPress={() => navigation.navigate('NovaOcorrencia')}
-        />
+        >
+          <Text style={styles.textoBotaoHome}>
+            Nova ocorrência
+          </Text>
+        </TouchableOpacity>
 
-        <View style={styles.espaco} />
-
-        <Button
-          title="Todas as ocorrências"
+        <TouchableOpacity
+          style={styles.botaoHome}
           onPress={() => navigation.navigate('TodasOcorrencias')}
-        />
+        >
+          <Text style={styles.textoBotaoHome}>
+            Todas as ocorrências
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.botaoMinhas}
+          onPress={() => navigation.navigate('MinhasOcorrencias')}
+        >
+          <Text style={styles.textoBotaoMinhas}>
+            Minhas ocorrências
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Overlay escuro quando o menu está aberto */}
       {menuAberto && (
-        <Pressable style={styles.overlay} onPress={fecharMenu} />
+        <Pressable
+          style={styles.overlay}
+          onPress={fecharMenu}
+        />
       )}
 
-      {/* Menu lateral (drawer) */}
       <Animated.View
         style={[
           styles.menuLateral,
@@ -85,29 +166,37 @@ export default function HomeScreen({ navigation, route }) {
           <Text style={styles.nomeMenu}>{nome}</Text>
         </View>
 
-        <TouchableOpacity style={styles.itemMenu} onPress={() => {
-          fecharMenu();
-          // navigation.navigate('Perfil');
-        }}>
+        <TouchableOpacity
+          style={styles.itemMenu}
+          onPress={() => {
+            fecharMenu();
+            navigation.navigate('Perfil');
+          }}
+        >
           <Text style={styles.textoItem}>👤 Meu Perfil</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.itemMenu} onPress={() => {
-          fecharMenu();
-
-        }}>
+        <TouchableOpacity
+          style={styles.itemMenu}
+          onPress={fecharMenu}
+        >
           <Text style={styles.textoItem}>⚙️ Configurações</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.itemMenu} onPress={() => {
-          fecharMenu();
-
-        }}>
+        <TouchableOpacity
+          style={styles.itemMenu}
+          onPress={fecharMenu}
+        >
           <Text style={styles.textoItem}>ℹ️ Sobre o App</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.itemMenu, styles.sair]} onPress={() => {navigation.replace('Login')}}>
-          <Text style={[styles.textoItem, { color: '#e63946' }]}>Sair</Text>
+        <TouchableOpacity
+          style={[styles.itemMenu, styles.sair]}
+          onPress={sair}
+        >
+          <Text style={[styles.textoItem, { color: '#e63946' }]}>
+            Sair
+          </Text>
         </TouchableOpacity>
       </Animated.View>
     </SafeAreaView>
@@ -119,7 +208,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  
+
   header: {
     position: 'absolute',
     top: 12,
@@ -165,10 +254,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 30,
-  },
-
-  espaco: {
-    height: 20,
   },
 
   menuLateral: {
@@ -229,5 +314,90 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',
     zIndex: 15,
+  },
+
+  tituloUltimas: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+
+  caixaOcorrencias: {
+    width: '100%',
+    height: 150,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 25,
+    overflow: 'hidden',
+  },
+
+  ocorrenciaItem: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+
+  ocorrenciaTexto: {
+    flexDirection: 'column',
+  },
+
+  descricaoOcorrencia: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+
+  nivelOcorrencia: {
+    fontSize: 13,
+    color: '#777',
+    marginTop: 3,
+  },
+
+  semOcorrencias: {
+    flex: 1,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    color: '#888',
+    fontSize: 14,
+  },
+
+  botaoHome: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#1565C0',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+
+  textoBotaoHome: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  botaoMinhas: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#1565C0',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+
+  textoBotaoMinhas: {
+    color: '#1565C0',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

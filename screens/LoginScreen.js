@@ -14,8 +14,17 @@ import {
 import * as LocalAuthentication from 'expo-local-authentication';
 
 import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
+
+import { auth } from '../firebaseConfig';
+
+import {
   buscarUsuario,
   buscarUsuarioPorEmail,
+  salvarUsuarioFirebase,
 } from '../database';
 
 const { width } = Dimensions.get('window');
@@ -23,6 +32,7 @@ const { width } = Dimensions.get('window');
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+
   const [biometriaDisponivel, setBiometriaDisponivel] = useState(false);
   const [contaBiometrica, setContaBiometrica] = useState(null);
 
@@ -80,34 +90,110 @@ export default function LoginScreen({ navigation }) {
       email: usuario.email,
       foto_perfil: usuario.foto_perfil,
       biometria_ativa: usuario.biometria_ativa,
+      firebaseUid: usuario.firebase_uid,
     });
   }
-
   async function entrar() {
-    if (email.trim() === '') {
+    const emailNormalizado = email.trim().toLowerCase();
+
+    if (!emailNormalizado) {
       Alert.alert('Atenção', 'Digite seu e-mail.');
       return;
     }
 
-    if (senha === '') {
+    if (!senha) {
       Alert.alert('Atenção', 'Digite sua senha.');
       return;
     }
 
     try {
-      const usuario = await buscarUsuario(email.trim(), senha);
+      let credencial;
+
+      try {
+        credencial = await signInWithEmailAndPassword(
+          auth,
+          emailNormalizado,
+          senha
+        );
+
+      } catch (erroFirebase) {
+        if (
+          erroFirebase.code !== 'auth/user-not-found' &&
+          erroFirebase.code !== 'auth/invalid-credential'
+        ) {
+          throw erroFirebase;
+        }
+
+        const usuarioAntigo = await buscarUsuario(
+          emailNormalizado,
+          senha
+        );
+
+        if (!usuarioAntigo) {
+          Alert.alert('Login inválido', 'E-mail ou senha incorretos.');
+          return;
+        }
+
+        if (senha.length < 6) {
+          Alert.alert(
+            'Senha incompatível',
+            'Sua senha antiga possui menos de 6 caracteres. Cadastre uma nova conta com uma senha de pelo menos 6 caracteres.'
+          );
+          return;
+        }
+
+        credencial = await createUserWithEmailAndPassword(
+          auth,
+          emailNormalizado,
+          senha
+        );
+
+        await updateProfile(credencial.user, {
+          displayName: usuarioAntigo.nome,
+        });
+      }
+
+      const usuario = await salvarUsuarioFirebase(
+        credencial.user.uid,
+        credencial.user.displayName || emailNormalizado.split('@')[0],
+        credencial.user.email
+      );
 
       if (!usuario) {
-        Alert.alert('Login inválido', 'E-mail ou senha incorretos.');
-        return;
+        throw new Error('Não foi possível recuperar os dados da conta.');
       }
 
       entrarNaConta(usuario);
+
     } catch (erro) {
       console.log('Erro ao realizar login:', erro);
-      Alert.alert('Erro', 'Não foi possível realizar o login.');
+
+      if (
+        erro.code === 'auth/invalid-credential' ||
+        erro.code === 'auth/wrong-password' ||
+        erro.code === 'auth/user-not-found'
+      ) {
+        Alert.alert('Login inválido', 'E-mail ou senha incorretos.');
+      } else if (erro.code === 'auth/too-many-requests') {
+        Alert.alert(
+          'Aguarde',
+          'Muitas tentativas de login. Tente novamente mais tarde.'
+        );
+      } else {
+        Alert.alert(
+          'Erro',
+          erro.message || 'Não foi possível realizar o login.'
+        );
+      }
     }
   }
+  useEffect(() => {
+    const usuarioFirebase = auth.currentUser;
+
+    if (usuarioFirebase?.email) {
+      setEmail(usuarioFirebase.email);
+    }
+  }, []);
 
   async function entrarComBiometria() {
     try {
@@ -119,16 +205,15 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      const usuario = await buscarUsuarioPorEmail(
-        contaBiometrica.email
-      );
-
-      if (!usuario || usuario.biometria_ativa !== 1) {
+      // A biometria só desbloqueia uma sessão Firebase já autenticada.
+      if (
+        !contaBiometrica.firebase_uid ||
+        auth.currentUser?.uid !== contaBiometrica.firebase_uid
+      ) {
         Alert.alert(
-          'Biometria desativada',
-          'Esta conta não possui mais autorização para login biométrico.'
+          'Entre com sua senha',
+          'Faça primeiro um login com e-mail e senha nesta conta para utilizar a biometria.'
         );
-        setContaBiometrica(null);
         return;
       }
 
@@ -147,9 +232,11 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      entrarNaConta(usuario);
+      entrarNaConta(contaBiometrica);
+
     } catch (erro) {
       console.log('Erro na biometria:', erro);
+
       Alert.alert(
         'Erro',
         'Não foi possível realizar a autenticação biométrica.'
@@ -204,6 +291,7 @@ export default function LoginScreen({ navigation }) {
             onPress={entrarComBiometria}
           >
             <Text style={styles.iconeBiometria}>🔐</Text>
+
             <Text style={styles.textoBiometria}>
               Entrar com biometria
             </Text>

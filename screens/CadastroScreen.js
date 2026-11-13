@@ -1,5 +1,14 @@
+
 import React, { useState } from 'react';
-import { cadastrarUsuario } from '../database';
+
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
+
+import { auth } from '../firebaseConfig';
+import { salvarUsuarioFirebase } from '../database';
+
 import {
   View,
   Text,
@@ -10,10 +19,7 @@ import {
   Dimensions,
 } from 'react-native';
 
-
-const { width, height } = Dimensions.get('window');
-
-
+const { width } = Dimensions.get('window');
 
 export default function CadastroScreen({ navigation }) {
   const [nome, setNome] = useState('');
@@ -22,18 +28,18 @@ export default function CadastroScreen({ navigation }) {
   const [confirmarSenha, setConfirmarSenha] = useState('');
 
   async function cadastrar() {
-    if (nome.trim() === '') {
+    if (!nome.trim()) {
       Alert.alert('Atenção', 'Digite seu nome.');
       return;
     }
 
-    if (email.trim() === '') {
+    if (!email.trim()) {
       Alert.alert('Atenção', 'Digite seu e-mail.');
       return;
     }
 
-    if (senha.length < 4) {
-      Alert.alert('Atenção', 'A senha deve ter pelo menos 4 caracteres.');
+    if (senha.length < 6) {
+      Alert.alert('Atenção', 'A senha deve ter pelo menos 6 caracteres.');
       return;
     }
 
@@ -43,53 +49,65 @@ export default function CadastroScreen({ navigation }) {
     }
 
     try {
-      await cadastrarUsuario(
-        nome.trim(),
+      // Cria a conta no Firebase.
+      const credencial = await createUserWithEmailAndPassword(
+        auth,
         email.trim().toLowerCase(),
         senha
+      );
+
+      // Salva o nome no perfil do Firebase.
+      await updateProfile(credencial.user, {
+        displayName: nome.trim(),
+      });
+
+      // Registra o usuário também no SQLite.
+      await salvarUsuarioFirebase(
+        credencial.user.uid,
+        nome.trim(),
+        credencial.user.email
       );
 
       Alert.alert(
         'Cadastro realizado!',
         'Sua conta foi criada com sucesso.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Login'),
+          },
+        ]
       );
 
     } catch (erro) {
       console.log('Erro ao cadastrar:', erro);
 
-      if (erro.message?.includes('UNIQUE')) {
+      if (erro.code === 'auth/email-already-in-use') {
         Alert.alert('E-mail já cadastrado', 'Utilize outro e-mail.');
+      } else if (erro.code === 'auth/invalid-email') {
+        Alert.alert('E-mail inválido', 'Verifique o endereço informado.');
+      } else if (erro.code === 'auth/weak-password') {
+        Alert.alert('Senha fraca', 'Escolha uma senha mais segura.');
       } else {
-        Alert.alert('Erro', 'Não foi possível realizar o cadastro.');
+        Alert.alert('Erro', erro.message || 'Não foi possível realizar o cadastro.');
       }
     }
   }
 
   return (
     <View style={styles.container}>
-
-      {/* FAIXAS DECORATIVAS */}
       <View style={styles.faixaAzul} />
       <View style={styles.faixaAmarela} />
 
       <View style={styles.conteudo}>
-
         <Text style={styles.icone}>🚨</Text>
 
-        <Text style={styles.titulo}>
-          Criar conta
-        </Text>
+        <Text style={styles.titulo}>Criar conta</Text>
 
-        <Text style={styles.subtitulo}>
-          Ocorrências Urbanas
-        </Text>
+        <Text style={styles.subtitulo}>Ocorrências Urbanas</Text>
 
-        <Text style={styles.instrucao}>
-          Cadastre seus dados
-        </Text>
+        <Text style={styles.instrucao}>Cadastre seus dados</Text>
 
-        {/* NOME */}
         <TextInput
           style={styles.input}
           placeholder="Digite seu nome"
@@ -98,7 +116,6 @@ export default function CadastroScreen({ navigation }) {
           onChangeText={setNome}
         />
 
-        {/* EMAIL */}
         <TextInput
           style={styles.input}
           placeholder="Digite seu e-mail"
@@ -109,7 +126,6 @@ export default function CadastroScreen({ navigation }) {
           autoCapitalize="none"
         />
 
-        {/* SENHA */}
         <TextInput
           style={styles.input}
           placeholder="Digite sua senha"
@@ -119,7 +135,6 @@ export default function CadastroScreen({ navigation }) {
           secureTextEntry
         />
 
-        {/* CONFIRMAR SENHA */}
         <TextInput
           style={styles.input}
           placeholder="Confirme sua senha"
@@ -129,17 +144,13 @@ export default function CadastroScreen({ navigation }) {
           secureTextEntry
         />
 
-        {/* BOTÃO CADASTRAR */}
         <TouchableOpacity
           style={styles.botao}
           onPress={cadastrar}
         >
-          <Text style={styles.textoBotao}>
-            Criar conta
-          </Text>
+          <Text style={styles.textoBotao}>Criar conta</Text>
         </TouchableOpacity>
 
-        {/* VOLTAR PARA LOGIN */}
         <TouchableOpacity
           onPress={() => navigation.navigate('Login')}
         >
@@ -147,7 +158,6 @@ export default function CadastroScreen({ navigation }) {
             Já possui uma conta? Entrar
           </Text>
         </TouchableOpacity>
-
       </View>
     </View>
   );
@@ -167,11 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1565C0',
     top: 20,
     left: -width * 0.35,
-    transform: [
-      {
-        rotate: '-12deg',
-      },
-    ],
+    transform: [{ rotate: '-12deg' }],
   },
 
   faixaAmarela: {
@@ -181,11 +187,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFD600',
     top: 85,
     left: -width * 0.3,
-    transform: [
-      {
-        rotate: '-12deg',
-      },
-    ],
+    transform: [{ rotate: '-12deg' }],
   },
 
   conteudo: {

@@ -14,6 +14,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import { listarOcorrencias } from '../database';
+import { excluirOcorrencia } from '../sincronizacao';
 
 export default function TodasOcorrenciasScreen({
   route,
@@ -22,6 +23,7 @@ export default function TodasOcorrenciasScreen({
   const [ocorrencias, setOcorrencias] = useState([]);
   const [ocorrenciaSelecionada, setOcorrenciaSelecionada] = useState(null);
   const [carregando, setCarregando] = useState(true);
+  const [excluindo, setExcluindo] = useState(false);
 
   const somenteMinhas =
     somenteMinhasForcada ?? route.params?.somenteMinhas ?? false;
@@ -54,6 +56,64 @@ export default function TodasOcorrenciasScreen({
       carregarOcorrencias();
     }, [somenteMinhas, usuarioId])
   );
+  
+  function confirmarExclusao() {
+    if (!ocorrenciaSelecionada || excluindo) return;
+
+    Alert.alert(
+      'Excluir ocorrência',
+      'Tem certeza de que deseja excluir esta ocorrência? Essa ação não poderá ser desfeita.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setExcluindo(true);
+
+              const resultado = await excluirOcorrencia(
+                ocorrenciaSelecionada.id,
+                usuarioId
+              );
+
+              setOcorrencias(atual =>
+                atual.filter(
+                  item => item.id !== ocorrenciaSelecionada.id
+                )
+              );
+
+              setOcorrenciaSelecionada(null);
+
+              if (resultado.pendenteNuvem) {
+                Alert.alert(
+                  'Exclusão registrada',
+                  'A ocorrência foi removida da lista e será excluída da nuvem na próxima sincronização.'
+                );
+              } else {
+                Alert.alert('Sucesso', 'Ocorrência excluída.');
+              }
+
+            } catch (erro) {
+              console.log('Erro ao excluir ocorrência:', erro);
+
+              Alert.alert(
+                'Erro',
+                erro.message || 'Não foi possível excluir a ocorrência.'
+              );
+
+            } finally {
+              setExcluindo(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
 
   return (
     <View style={styles.container}>
@@ -168,6 +228,18 @@ export default function TodasOcorrenciasScreen({
                   {'\n'}
                   Longitude: {Number(ocorrenciaSelecionada.longitude).toFixed(5)}
                 </Text>
+
+                {somenteMinhas && (
+                  <TouchableOpacity
+                    style={styles.botaoExcluir}
+                    onPress={confirmarExclusao}
+                    disabled={excluindo}
+                  >
+                    <Text style={styles.textoBotaoExcluir}>
+                      {excluindo ? 'Excluindo...' : 'Excluir ocorrência'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
 
                 <TouchableOpacity
                   style={styles.botaoFechar}
@@ -305,6 +377,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   textoBotaoFechar: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  botaoExcluir: {
+  height: 45,
+  backgroundColor: '#D32F2F',
+  borderRadius: 10,
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: 10,
+  },
+
+  textoBotaoExcluir: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

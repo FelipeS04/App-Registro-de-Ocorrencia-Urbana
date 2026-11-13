@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { sincronizarOcorrencias } from '../sincronizacao';
 
 import {
   View,
@@ -91,6 +92,7 @@ export default function NovaOcorrenciaScreen({
   // REGISTRAR OCORRÊNCIA
   // =================================
 
+
   async function registrarOcorrencia() {
     if (descricao.trim() === '') {
       alert('Digite uma descrição.');
@@ -126,16 +128,36 @@ export default function NovaOcorrenciaScreen({
         longitude: localizacao.longitude,
       };
 
+      // Primeiro salva no SQLite.
       await salvarOcorrencia(novaOcorrencia, usuarioId);
 
-      alert('Ocorrência registrada!');
+      let mensagem = 'Ocorrência salva no celular.';
+
+      // Depois tenta enviar ao Firebase.
+      try {
+        const resultado = await sincronizarOcorrencias();
+
+        if (resultado.enviadas > 0) {
+          mensagem += ` ${resultado.enviadas} ocorrência(s) enviada(s) ao Firebase.`;
+        } else {
+          mensagem += ' Nenhuma ocorrência pendente para enviar.';
+        }
+      } catch (erroFirebase) {
+        console.log('Sincronização pendente:', erroFirebase);
+
+        mensagem += ' Será sincronizada quando a conexão estiver disponível.';
+      }
+
+      alert(mensagem);
+
       navigation.navigate('TodasOcorrencias');
 
     } catch (erro) {
       console.log('Erro ao registrar ocorrência:', erro);
-      alert('Não foi possível registrar a ocorrência.');
+      alert('Não foi possível salvar a ocorrência.');
     }
   }
+
   // =================================
   // TELA
   // =================================

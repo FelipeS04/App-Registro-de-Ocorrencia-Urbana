@@ -13,9 +13,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 
+
+import { signOut, updateProfile } from 'firebase/auth';
+
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as LocalAuthentication from 'expo-local-authentication';
+
+import { auth } from '../firebaseConfig';
 
 import {
   atualizarNome,
@@ -111,7 +116,7 @@ export default function PerfilScreen({
     }
   }
 
-  async function salvarNovoNome() {
+  async function updateProfile() {
     if (novoNome.trim() === '') {
       Alert.alert('Atenção', 'Digite um nome válido.');
       return;
@@ -155,11 +160,19 @@ export default function PerfilScreen({
     }
   }
 
-  function sair() {
-    navigation.getParent()?.reset({
-      index: 0,
-      routes: [{ name: 'Login' }],
-    });
+  async function sair() {
+    try {
+      if (!biometriaAtiva) {
+        await signOut(auth);
+      }
+
+      navigation.getParent()?.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (erro) {
+      Alert.alert('Erro', 'Não foi possível sair da conta.');
+    }
   }
 
   return (
@@ -200,7 +213,7 @@ export default function PerfilScreen({
           <View style={styles.botoesEdicao}>
             <TouchableOpacity
               style={styles.botaoSalvar}
-              onPress={salvarNovoNome}
+              onPress={updateProfile}
             >
               <Text style={styles.textoBotao}>Salvar</Text>
             </TouchableOpacity>
